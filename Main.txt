@@ -1,0 +1,169 @@
+const id = 'ca-pub-6926521452206763' //自分のアドセンスID
+const metrics = ['PAGE_VIEWS', 'CLICKS', 'PAGE_VIEWS_CTR', 'COST_PER_CLICK', 'PAGE_VIEWS_RPM', 'EARNINGS']
+
+
+function sendLINE(text) {
+    //LINEから取得したトークン
+    const token = '7Wkch6frGCDDayTSOvap6WSk8gUY2yzfDaScAzOGZeJ';
+
+    //fetch用の詳細パラメータ
+    const options = {
+        'method' : 'post',
+        'headers' : {
+            'Authorization' : 'Bearer '+ token
+        },
+        'payload' : {
+            'message' : text
+        }
+    };
+
+    //LINE APIのURL
+    let url  = 'https://notify-api.line.me/api/notify';
+
+    //APIをリクエストして応答を受信する
+    UrlFetchApp.fetch(url, options);
+}
+
+function main() {
+  var now = new Date();
+  var startDate = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'yyyy-MM-dd');
+  var endDate = 'today';
+  var siteName = ["wainobibou6.xyz",'kaijitsushin.jp','umatome.xyz','jeongyeon.net','funny.umatome.xyz'];
+  var mainText = "";
+
+  for (let i = 0; i < siteName.length; i++){
+    var args = {
+    'metric': metrics,
+    'dimension': ['DATE'],
+    'filter': ['AD_CLIENT_ID==' + id,'DOMAIN_NAME==' + siteName[i]],
+    'useTimezoneReporting': true, //ローカルタイムゾーン設定
+    };
+    var report = AdSense.Reports.generate(startDate, endDate,args).getRows();
+    //Logger.log(report);
+
+    var text = "\nサイト名：" + siteName[i]
+    + "\n ページビュー数：" + report[0][1] 
+    + "\n クリック数：" + report[0][2] 
+    + "\n CTR：" + report[0][3] * 100 + "%"
+    + "\n CPC："+ report[0][4]
+    + "\n RPM：" + report[0][5] 
+    + "\n 収益：" + report[0][6] + "円"
+
+    var dateText = '\n今日' + startDate + 'の成果です'
+    mainText = mainText + '\n' + text;
+  }
+
+  var totalDayText = '\n' + getTotalDayAdSenseData();
+  var totalMonthText = '\n' + getTotalMonthAdSenseData();
+
+  sendLINE(dateText + mainText + totalDayText + totalMonthText);
+
+}
+
+//その日の合計
+function getTotalDayAdSenseData() {
+  var now = new Date();
+  var startDate = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'yyyy-MM-dd');
+  var endDate = 'today';
+ 
+  var args = {
+  'metric': metrics,
+  'dimension': ['DATE'],
+  'filter': ['AD_CLIENT_ID==' + id],
+  'useTimezoneReporting': true, //ローカルタイムゾーン設定
+  };
+  var report = AdSense.Reports.generate(startDate, endDate, args).getRows();
+  //Logger.log(report);
+
+  var text = '\n☆★本日' + startDate + 'の合計★☆'
+  + "\nページビュー数：" + report[0][1] 
+  + "\nクリック数：" + report[0][2] 
+  + "\nCTR：" + report[0][3]  * 100 + "%"
+  +"\nCPC："+ report[0][4]
+  + "\nRPM：" + report[0][5] 
+  + "\n収益：" + report[0][6] + "円"
+
+  return text;
+}
+
+//月の合計
+function getTotalMonthAdSenseData() {
+  var now = new Date();
+  var startDate = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),1), 'Asia/Tokyo', 'yyyy-MM-dd');
+  var endDate = 'today';
+
+
+  var dateMonth = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'MM');
+  //1~9月が09月等にならないように0を削除する。
+  if(dateMonth < 10){
+      dateMonth = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'M')
+  }
+
+  var endDate2 = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'yyyy-MM-dd');
+  
+  var args = {
+  'metric': metrics,
+  'dimension': ['MONTH'],
+  'filter': ['AD_CLIENT_ID==' + id],
+  'useTimezoneReporting': true, //ローカルタイムゾーン設定
+  };
+  var report = AdSense.Reports.generate(startDate,endDate2, args).getRows();
+  //Logger.log(report);
+
+  var text = '\n☆★今月' + dateMonth + '月【' + Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),1), 'Asia/Tokyo', 'MM-dd') + '～' + Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'MM-dd') + '】の合計★☆'
+  + "\nページビュー数：" + report[0][1] 
+  + "\nクリック数：" + report[0][2] 
+  + "\nCTR：" + report[0][3]  * 100 + "%"
+  +"\nCPC："+ report[0][4]
+  + "\nRPM：" + report[0][5] 
+  + "\n収益：" + report[0][6] + "円"
+
+  return text;
+}
+
+
+
+//メトリクスやディメンションについてはhttps://developers.google.com/adsense/management/metrics-dimensions?hl=en　を参照
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+function getAdsenseData2() {
+  var now = new Date();
+  //var startDate = Utilities.formatDate(new Date(now.getYear(), now.getMonth(),1), 'Asia/Tokyo', 'yyyy-MM-dd');
+  //getYear()は異常値になるため、getFullYear()を利用
+    //var startDate = new Date(now.getFullYear(), now.getMonth(),now.getDate() -1);
+  var startDate = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'yyyy-MM-dd');
+  
+  var endDate = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy-MM-dd');
+  var report = AdSense.Reports.generate(startDate, endDate, {
+    metric: ['PAGE_VIEWS', 'AD_REQUESTS', 'CLICKS',
+             'AD_REQUESTS_CTR', 'COST_PER_CLICK', 'AD_REQUESTS_RPM',
+             'EARNINGS','DOMAIN_NAME'],
+  }).rows;
+
+  var text = '\n今日' + startDate + 'の成果です'
+  + "\nページビュー数：" + report[0][0] 
+  + "\n広告リクエスト回数：" + report[0][1] 
+  + "\nクリック数：" + report[0][2] 
+  +"\nCTR："+ report[0][3]
+  + "\nCPC：" + report[0][4] 
+  + "\nRPM：" + report[0][5] 
+  + "\n見積もり収益：" + report[0][6] + "円"
+  + "\nああああ：" + report[0][7] 
+
+    sendLINE(text);
+}
+*/
