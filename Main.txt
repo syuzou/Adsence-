@@ -8,6 +8,7 @@ function sendLINE(text) {
 
     //fetch用の詳細パラメータ
     const options = {
+        'muteHttpExceptions' : true,
         'method' : 'post',
         'headers' : {
             'Authorization' : 'Bearer '+ token
@@ -16,14 +17,160 @@ function sendLINE(text) {
             'message' : text
         }
     };
-
+try{
     //LINE APIのURL
     let url  = 'https://notify-api.line.me/api/notify';
 
     //APIをリクエストして応答を受信する
     UrlFetchApp.fetch(url, options);
+      } 
+      catch(e) {
+    // 例外エラー処理
+    Logger.log('Error:')
+    Logger.log(e)
+  }
+}
+function dateToJson (paramName, value) {
+  return {
+    [paramName + '.year']: value.getFullYear(),
+    [paramName + '.month']: value.getMonth() + 1,
+    [paramName + '.day']: value.getDate()
+  };
 }
 
+function dateMonthToJason(paramName, value) {
+  return {
+    [paramName + '.year']: value.getFullYear(),
+    [paramName + '.month']: value.getMonth() + 1,
+    [paramName + '.day']: 1
+  };
+}
+
+function dateMonthendToJason(paramName, value) {
+  return {
+    [paramName + '.year']: value.getFullYear(),
+    [paramName + '.month']: value.getMonth() + 1,
+    [paramName + '.day']: value.getDate() -1
+  };
+}
+
+
+function main(accountName) { 
+
+
+
+
+  const today = new Date();
+  const oneWeekAgo = new Date(today.getTime() -  24 * 60 * 60 * 1000);
+
+  var now = new Date();
+  var startDate = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'yyyy-MM-dd');
+  var endDate = 'today';
+  var siteName = ["wainobibou6.xyz",'kaijitsushin.jp','umatome.xyz','jeongyeon.net','funny.umatome.xyz'];
+  var mainText = "";
+  var accountName =  "accounts/pub-" + 6926521452206763;
+
+  for (let i = 0; i < siteName.length; i++){
+
+    const report = AdSense.Accounts.Reports.generate(accountName, {
+    filters: ['AD_CLIENT_ID==' + id,'DOMAIN_NAME==' + siteName[i]],
+    metrics: ['PAGE_VIEWS', 'CLICKS','AD_REQUESTS_CTR', 'COST_PER_CLICK', 'PAGE_VIEWS_RPM','ESTIMATED_EARNINGS'],
+    dimensions: ['DATE'],
+    ...dateMonthToJason('startDate', oneWeekAgo),
+    ...dateToJson('endDate', today),
+    // Sort by ascending date.
+    orderBy: ['+DATE']    
+  });
+
+
+    var text = "\nサイト名：" + siteName[i]
+    + "\n ページビュー数：" + report.rows.map(row => row.cells.map(cell => cell.value))[i][1]
+    + "\n クリック数：" + report.rows.map(row => row.cells.map(cell => cell.value))[i][2] 
+  + "\nCTR：" + Math.round(report.rows.map(row => row.cells.map(cell => cell.value))[i][3] * 100 * 100)/100 + "%"
+    + "\n CPC："+ report.rows.map(row => row.cells.map(cell => cell.value))[i][4]
+    + "\n 収益：" + report.rows.map(row => row.cells.map(cell => cell.value))[i][5] + "円"
+
+    var dateText = '\n昨日' + startDate + 'の成果です'
+    mainText = mainText + '\n' + text;
+  }
+
+  var totalDayText = '\n' + getTotalDayAdSenseData();
+  var totalMonthText = '\n' + getTotalMonthAdSenseData();
+
+  sendLINE(dateText + mainText + totalDayText + totalMonthText);
+
+}
+//その日の合計
+function getTotalDayAdSenseData() {
+    const today = new Date();
+  const oneWeekAgo = new Date(today.getTime() -  24 * 60 * 60 * 1000);
+
+  var now = new Date();
+  var startDate = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'yyyy-MM-dd');
+  var endDate = 'today';
+    var accountName =  "accounts/pub-" + 6926521452206763;
+
+
+    const report = AdSense.Accounts.Reports.generate(accountName, {
+    filters: ['AD_CLIENT_ID==' + id],
+    metrics: ['PAGE_VIEWS', 'CLICKS','AD_REQUESTS_CTR', 'COST_PER_CLICK','PAGE_VIEWS_RPM','ESTIMATED_EARNINGS'],
+    dimensions: ['DATE'],
+    ...dateMonthendToJason('startDate', today),
+    ...dateToJson('endDate', today),
+    // Sort by ascending date.
+    //orderBy: ['+DATE']    
+  });
+
+  var text = '\n☆★昨日' + startDate + 'の合計★☆'
+  + "\nページビュー数：" +  report.rows.map(row => row.cells.map(cell => cell.value))[0][1] 
+  + "\nクリック数：" +  report.rows.map(row => row.cells.map(cell => cell.value))[0][2] 
+  + "\nCTR：" + Math.round(report.rows.map(row => row.cells.map(cell => cell.value))[0][3] * 100 * 100)/100 + "%"
+  +"\nCPC："+  report.rows.map(row => row.cells.map(cell => cell.value))[0][4]
+  + "\nRPM：" +  report.rows.map(row => row.cells.map(cell => cell.value))[0][5] 
+  + "\n収益：" +  report.rows.map(row => row.cells.map(cell => cell.value))[0][6] + "円"
+
+  return text;
+}
+
+//月の合計
+function getTotalMonthAdSenseData() {
+  const today = new Date();
+  const oneWeekAgo = new Date(today.getTime() -  24 * 60 * 60 * 1000);
+  var accountName =  "accounts/pub-" + 6926521452206763;
+
+  var now = new Date();
+  var startDate = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),1), 'Asia/Tokyo', 'yyyy-MM-dd');
+  var endDate = 'today';
+  var endDate2 = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'yyyy-MM-dd');
+
+    var dateMonth = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'MM');
+  //1~9月が09月等にならないように0を削除する。
+  if(dateMonth < 10){
+      dateMonth = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'M')
+  }
+
+    const report = AdSense.Accounts.Reports.generate(accountName, {
+    filters: ['AD_CLIENT_ID==' + id],
+    metrics: ['PAGE_VIEWS', 'CLICKS','AD_REQUESTS_CTR', 'COST_PER_CLICK','PAGE_VIEWS_RPM','ESTIMATED_EARNINGS'],
+    dimensions: ['MONTH'],
+    ...dateMonthToJason('startDate', oneWeekAgo),
+    ...dateMonthendToJason('endDate', today),
+    // Sort by ascending date.
+    //orderBy: ['+DATE']    
+  });
+
+  var text = '\n☆★今月' + dateMonth + '月【' + Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),1), 'Asia/Tokyo', 'MM-dd') + '～' + Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'MM-dd') + '】の合計★☆'
+  + "\nページビュー数：" + report.rows.map(row => row.cells.map(cell => cell.value))[0][1] 
+  + "\nクリック数：" + report.rows.map(row => row.cells.map(cell => cell.value))[0][2] 
+  + "\nCTR：" + Math.round(report.rows.map(row => row.cells.map(cell => cell.value))[0][3] * 100 * 100)/100 + "%"
+  +"\nCPC："+ report.rows.map(row => row.cells.map(cell => cell.value))[0][4]
+  + "\nRPM：" + report.rows.map(row => row.cells.map(cell => cell.value))[0][5] 
+  + "\n収益：" + report.rows.map(row => row.cells.map(cell => cell.value))[0][6] + "円"
+
+  return text;
+}
+
+/*過去log
 function main() {
   var now = new Date();
   var startDate = Utilities.formatDate(new Date(now.getFullYear(), now.getMonth(),now.getDate() -1), 'Asia/Tokyo', 'yyyy-MM-dd');
@@ -59,6 +206,7 @@ function main() {
   sendLINE(dateText + mainText + totalDayText + totalMonthText);
 
 }
+
 
 //その日の合計
 function getTotalDayAdSenseData() {
@@ -120,22 +268,11 @@ function getTotalMonthAdSenseData() {
 
   return text;
 }
+*/
 
 
 
 //メトリクスやディメンションについてはhttps://developers.google.com/adsense/management/metrics-dimensions?hl=en　を参照
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
